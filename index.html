@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<meta name="theme-color" content="#0a0a0f"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="JARVIS"/>
+<link rel="manifest" href="manifest.json"/>
+<title>JARVIS</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#0a0a0f;
+  --bg2:#0f0f1a;
+  --card:#13131f;
+  --border:#1e1e35;
+  --border2:#2a2a4a;
+  --blue:#3b82f6;
+  --blue-dim:#1d4ed8;
+  --cyan:#06b6d4;
+  --text:#e2e8f0;
+  --text2:#94a3b8;
+  --text3:#475569;
+  --green:#22c55e;
+  --red:#ef4444;
+  --amber:#f59e0b;
+  --purple:#8b5cf6;
+  --radius:14px;
+  --radius-lg:20px;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:40px 40px;opacity:0.25;pointer-events:none;}
+.app{display:flex;flex-direction:column;height:100%;max-width:480px;margin:0 auto;position:relative;z-index:1;}
+
+/* HEADER */
+.header{padding:16px 20px 8px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-ring{width:34px;height:34px;border-radius:50%;border:2px solid var(--blue);display:flex;align-items:center;justify-content:center;}
+.logo-text{font-size:19px;font-weight:700;letter-spacing:.15em;}
+.logo-sub{font-size:9px;color:var(--text3);letter-spacing:.12em;}
+.status-pill{display:flex;align-items:center;gap:5px;background:var(--card);border:0.5px solid var(--border2);border-radius:20px;padding:4px 10px;font-size:11px;color:var(--text3);}
+.status-pill .dot{width:6px;height:6px;border-radius:50%;background:var(--text3);}
+.status-pill .dot.green{background:var(--green);}
+.status-pill .dot.amber{background:var(--amber);}
+.status-pill .dot.blue{background:var(--blue);}
+
+/* LOAD SCREEN */
+.load-screen{position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:30px;}
+.load-screen.hidden{display:none;}
+.load-ring{width:80px;height:80px;border-radius:50%;border:3px solid var(--border2);border-top-color:var(--blue);animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.load-title{font-size:22px;font-weight:700;letter-spacing:.15em;color:var(--text);}
+.load-sub{font-size:13px;color:var(--text2);text-align:center;max-width:280px;line-height:1.6;}
+.load-bar-wrap{width:260px;height:4px;background:var(--border2);border-radius:2px;overflow:hidden;}
+.load-bar{height:100%;background:var(--blue);border-radius:2px;width:0%;transition:width .4s ease;}
+.load-status{font-size:12px;color:var(--text3);min-height:18px;}
+
+/* LOG AREA */
+.log-area{flex:1;overflow-y:auto;padding:8px 14px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch;}
+.log-area::-webkit-scrollbar{width:2px;}
+.log-area::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.msg{padding:10px 14px;border-radius:var(--radius);font-size:14px;line-height:1.5;max-width:88%;animation:fadeUp .2s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+.msg.user{background:var(--blue-dim);color:#fff;align-self:flex-end;border-bottom-right-radius:4px;}
+.msg.jarvis{background:var(--card);border:0.5px solid var(--border2);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px;}
+.msg.jarvis .sender{font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--cyan);margin-bottom:3px;}
+.msg.system{background:transparent;border:0.5px solid var(--border);color:var(--text3);font-size:12px;align-self:center;text-align:center;padding:5px 12px;border-radius:20px;}
+
+.action-card{background:var(--card);border:0.5px solid var(--border2);border-radius:var(--radius);padding:12px 14px;align-self:flex-start;max-width:94%;animation:fadeUp .2s ease;}
+.action-card .ac-label{font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--cyan);margin-bottom:6px;}
+.action-card .ac-text{font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.5;}
+.ac-btn{display:inline-flex;align-items:center;gap:5px;padding:9px 18px;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;text-decoration:none;border:none;background:var(--blue);color:#fff;transition:opacity .15s;}
+.ac-btn:active{opacity:.8;}
+.ac-btn.sec{background:var(--border2);color:var(--text);}
+
+/* ORB */
+.orb-section{padding:6px 0 10px;display:flex;flex-direction:column;align-items:center;flex-shrink:0;}
+.orb-wrap{position:relative;width:96px;height:96px;display:flex;align-items:center;justify-content:center;}
+.orb-ring{position:absolute;border-radius:50%;border:1px solid var(--blue);opacity:0;pointer-events:none;}
+.orb-ring:nth-child(1){width:100%;height:100%;}
+.orb-ring:nth-child(2){width:78%;height:78%;}
+.orb-ring:nth-child(3){width:58%;height:58%;}
+@keyframes orbRingAnim{0%{transform:scale(.85);opacity:.5;}100%{transform:scale(1.25);opacity:0;}}
+.orb-wrap.listening .orb-ring{animation:orbRingAnim 1.3s ease-out infinite;}
+.orb-wrap.listening .orb-ring:nth-child(2){animation-delay:.4s;}
+.orb-wrap.listening .orb-ring:nth-child(3){animation-delay:.8s;}
+.orb{width:68px;height:68px;border-radius:50%;background:var(--bg2);border:2px solid var(--blue);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s,border-color .2s,box-shadow .2s;}
+.orb:active{transform:scale(.93);}
+.orb svg{width:27px;height:27px;stroke:var(--blue);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:stroke .2s;}
+.orb-wrap.listening .orb{border-color:var(--cyan);box-shadow:0 0 0 8px rgba(6,182,212,.12);}
+.orb-wrap.listening .orb svg{stroke:var(--cyan);}
+.orb-wrap.thinking .orb{border-color:var(--amber);}
+.orb-wrap.thinking .orb svg{stroke:var(--amber);}
+.orb-wrap.disabled .orb{border-color:var(--text3);cursor:not-allowed;opacity:.5;}
+.orb-wrap.disabled .orb svg{stroke:var(--text3);}
+.orb-status{font-size:11px;color:var(--text3);margin-top:7px;letter-spacing:.04em;min-height:17px;text-align:center;}
+
+/* TRANSCRIPT */
+.transcript-bar{margin:0 14px 8px;background:var(--card);border:0.5px solid var(--border2);border-radius:var(--radius);padding:9px 13px;font-size:13px;color:var(--text3);min-height:38px;display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--red);flex-shrink:0;animation:blink 1s ease infinite;}
+.live-dot.hidden{display:none;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.15;}}
+
+/* QUICK CHIPS */
+.quick-row{padding:0 14px 10px;display:flex;gap:7px;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-shrink:0;}
+.quick-row::-webkit-scrollbar{display:none;}
+.qchip{white-space:nowrap;padding:6px 13px;border-radius:20px;background:var(--card);border:0.5px solid var(--border2);font-size:12px;color:var(--text2);cursor:pointer;flex-shrink:0;transition:border-color .15s;}
+.qchip:active{background:var(--border2);}
+
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:4px;}
+@keyframes dotPulse{0%,80%,100%{transform:scale(0);}40%{transform:scale(1);}}
+.typing span{display:inline-block;width:5px;height:5px;background:var(--text3);border-radius:50%;margin:0 1px;animation:dotPulse 1.2s infinite ease-in-out;}
+.typing span:nth-child(2){animation-delay:.2s;}
+.typing span:nth-child(3){animation-delay:.4s;}
+</style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div class="load-screen" id="loadScreen">
+  <div class="load-ring"></div>
+  <div class="load-title">JARVIS</div>
+  <div class="load-sub">Loading AI model into your device.<br/>First load takes 1–2 minutes. After that it's instant.</div>
+  <div class="load-bar-wrap"><div class="load-bar" id="loadBar"></div></div>
+  <div class="load-status" id="loadStatus">Initialising...</div>
+</div>
+
+<div class="bg-grid"></div>
+<div class="app">
+
+  <div class="header">
+    <div class="logo">
+      <div class="logo-ring">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      </div>
+      <div>
+        <div class="logo-text">JARVIS</div>
+        <div class="logo-sub">LOCAL AI · NO API</div>
+      </div>
+    </div>
+    <div class="status-pill">
+      <div class="dot" id="statusDot"></div>
+      <span id="statusText">Loading</span>
+    </div>
+  </div>
+
+  <div class="log-area" id="logArea">
+    <div class="msg system">Loading AI... please wait</div>
+  </div>
+
+  <div class="transcript-bar" id="transcriptBar">
+    <span class="live-dot hidden" id="liveDot"></span>
+    <span id="transcriptText">Waiting for AI to load...</span>
+  </div>
+
+  <div class="orb-section">
+    <div class="orb-wrap disabled" id="orbWrap">
+      <div class="orb-ring"></div>
+      <div class="orb-ring"></div>
+      <div class="orb-ring"></div>
+      <div class="orb" id="orb" onclick="toggleListen()">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" y1="19" x2="12" y2="23"/>
+          <line x1="8" y1="23" x2="16" y2="23"/>
+        </svg>
+      </div>
+    </div>
+    <div class="orb-status" id="orbStatus">Loading AI model...</div>
+  </div>
+
+  <div class="quick-row" id="quickRow" style="opacity:.3;pointer-events:none;">
+    <div class="qchip" onclick="handleChip('Open WhatsApp')">WhatsApp</div>
+    <div class="qchip" onclick="handleChip('Search Google for latest news')">Google News</div>
+    <div class="qchip" onclick="handleChip('Open YouTube and search music')">YouTube</div>
+    <div class="qchip" onclick="handleChip('Open Google Maps')">Maps</div>
+    <div class="qchip" onclick="handleChip('What is the time now')">Time</div>
+    <div class="qchip" onclick="handleChip('Call someone')">Call</div>
+    <div class="qchip" onclick="handleChip('Search Google for weather today')">Weather</div>
+    <div class="qchip" onclick="handleChip('Open camera')">Camera</div>
+  </div>
+
+</div>
+
+<script type="module">
+import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.1/dist/transformers.min.js';
+
+env.allowLocalModels = false;
+
+let classifier = null;
+let isListening = false;
+let recognition = null;
+let aiReady = false;
+
+const loadScreen  = document.getElementById('loadScreen');
+const loadBar     = document.getElementById('loadBar');
+const loadStatus  = document.getElementById('loadStatus');
+const logArea     = document.getElementById('logArea');
+const orbWrap     = document.getElementById('orbWrap');
+const orbStatus   = document.getElementById('orbStatus');
+const transcriptT = document.getElementById('transcriptText');
+const liveDot     = document.getElementById('liveDot');
+const statusDot   = document.getElementById('statusDot');
+const statusText  = document.getElementById('statusText');
+const quickRow    = document.getElementById('quickRow');
+
+// ── INTENT RULES (no model needed for commands) ──────────────────────────────
+// We use a smart keyword/regex matcher — works 100% offline, zero download.
+// The transformers.js pipeline is used as a fallback for free-form questions.
+
+function detectIntent(text) {
+  const t = text.toLowerCase().trim();
+
+  // WhatsApp send
+  if (/(send|message|text|whatsapp|wa)\s.*(whatsapp|wa|message|msg)?.*(to\s+\w+|number)/i.test(t) ||
+      /whatsapp.*send|send.*whatsapp|message.*to\s+\w+/i.test(t)) {
+    const nameM = t.match(/(?:to|message|whatsapp)\s+([a-z]+)(?:\s|$)/i);
+    const phoneM = t.match(/(\d{7,15})/);
+    const msgM   = t.match(/(?:saying|say|that|message is|tell (?:him|her|them))\s+(.+)/i);
+    return { intent:'whatsapp_message', name: nameM?.[1]||'', phone: phoneM?.[1]||'', message: msgM?.[1]||'' };
+  }
+  if (/open\s+whatsapp|go\s+to\s+whatsapp|launch\s+whatsapp/i.test(t))
+    return { intent:'whatsapp_open' };
+
+  // Calls
+  if (/^call\s+\w|make a call|dial|phone call|ring\s+\w/i.test(t)) {
+    const nameM  = t.match(/(?:call|dial|ring|phone)\s+([a-z0-9 ]+?)(?:\s+on|\s+at|$)/i);
+    const phoneM = t.match(/(\d{7,15})/);
+    return { intent:'make_call', name: nameM?.[1]?.trim()||'', phone: phoneM?.[1]||'' };
+  }
+
+  // YouTube
+  if (/youtube|play\s+(a\s+)?(video|song|music)|watch\s+(a\s+)?video/i.test(t)) {
+    const q = t.replace(/(?:open\s+)?youtube|play|watch|search|video|on youtube/gi,'').trim();
+    return { intent:'youtube_search', query: q };
+  }
+
+  // Google search
+  if (/(?:search|google|look up|find|browse|search for)\s+(.+)/i.test(t) || /^what is |^who is |^how to |^tell me about /i.test(t)) {
+    const q = t.replace(/^(?:search|google|look up|find|browse)\s+(?:for\s+)?/i,'').trim();
+    return { intent:'google_search', query: q||t };
+  }
+
+  // Maps
+  if (/maps|direction|navigate|how to go|route to|take me to|open maps/i.test(t)) {
+    const q = t.replace(/open|google|maps|direction|navigate|how to go|route to|take me to/gi,'').trim();
+    return { intent:'open_maps', query: q };
+  }
+
+  // Camera
+  if (/camera|take (?:a\s+)?photo|take (?:a\s+)?picture|selfie|take (?:a\s+)?pic/i.test(t))
+    return { intent:'open_camera' };
+
+  // Settings
+  if (/settings?|wifi|bluetooth|brightness|volume|notification|airplane mode/i.test(t))
+    return { intent:'open_settings' };
+
+  // Email
+  if (/email|mail|send (?:an\s+)?email/i.test(t)) {
+    const toM  = t.match(/(?:to|email)\s+([a-z@.]+)/i);
+    const msgM = t.match(/(?:saying|about|that)\s+(.+)/i);
+    return { intent:'send_email', name: toM?.[1]||'', message: msgM?.[1]||'' };
+  }
+
+  // Alarm / timer
+  if (/alarm|timer|remind me|wake me|set (?:an?\s+)?alarm/i.test(t))
+    return { intent:'set_alarm' };
+
+  // Time / date
+  if (/what(?:'s|\s+is)\s+(?:the\s+)?time|current time|what time|today(?:'s|\s+is)?\s+date|what(?:'s|\s+is)\s+(?:the\s+)?date|what day/i.test(t))
+    return { intent:'time_date' };
+
+  // Calculator
+  if (/calculate|what is \d|how much is|\d+\s*[\+\-\*\/]\s*\d|\d+\s+(?:plus|minus|times|divided)/i.test(t))
+    return { intent:'calculate', query: t };
+
+  // Open app
+  if (/^open\s+\w|^launch\s+\w|^start\s+\w/i.test(t)) {
+    const app = t.replace(/^(?:open|launch|start)\s+/i,'').trim();
+    return { intent:'open_app', app };
+  }
+
+  return { intent:'unknown', query: t };
+}
+
+// ── HANDLE INTENT → ACTION ───────────────────────────────────────────────────
+function handleIntent(text) {
+  const cmd = detectIntent(text);
+  const now  = new Date();
+
+  switch (cmd.intent) {
+
+    case 'whatsapp_message': {
+      const phone = (cmd.phone||'').replace(/\D/g,'');
+      const msg   = encodeURIComponent(cmd.message||'');
+      const url   = phone
+        ? `https://wa.me/${phone}${msg?'?text='+msg:''}`
+        : 'https://web.whatsapp.com';
+      const note  = !phone && cmd.name ? ` Select "${cmd.name}" manually.` : '';
+      const reply = `Opening WhatsApp${cmd.name?' for '+cmd.name:''}.${note}`;
+      addJarvis(reply);
+      speak(reply);
+      showAction('WhatsApp', reply, phone?`Message ${cmd.name||phone}`:'Open WhatsApp', url);
+      break;
+    }
+
+    case 'whatsapp_open':
+      addJarvis('Opening WhatsApp Web.');
+      speak('Opening WhatsApp.');
+      showAction('WhatsApp', 'Opening WhatsApp Web.', 'Open WhatsApp', 'https://web.whatsapp.com');
+      break;
+
+    case 'make_call': {
+      const phone = (cmd.phone||'').replace(/\D/g,'');
+      const url   = phone ? `tel:${phone}` : `tel:`;
+      const label = phone ? `Call ${cmd.name||phone}` : 'Open dialer';
+      const reply = phone ? `Calling ${cmd.name||phone}.` : `Opening dialer${cmd.name?' for '+cmd.name:''}.`;
+      addJarvis(reply); speak(reply);
+      showAction('Call', reply, label, url);
+      break;
+    }
+
+    case 'google_search': {
+      const url   = `https://www.google.com/search?q=${encodeURIComponent(cmd.query)}`;
+      const reply = `Searching Google for: ${cmd.query}.`;
+      addJarvis(reply); speak(`Searching for ${cmd.query}.`);
+      showAction('Google Search', reply, 'Open Google', url);
+      break;
+    }
+
+    case 'youtube_search': {
+      const url   = `https://www.youtube.com/results?search_query=${encodeURIComponent(cmd.query)}`;
+      const reply = `Opening YouTube${cmd.query?' for '+cmd.query:''}.`;
+      addJarvis(reply); speak(reply);
+      showAction('YouTube', reply, 'Open YouTube', url);
+      break;
+    }
+
+    case 'open_maps': {
+      const url   = `https://maps.google.com/?q=${encodeURIComponent(cmd.query||'nearby')}`;
+      const reply = `Opening Google Maps${cmd.query?' for '+cmd.query:''}.`;
+      addJarvis(reply); speak(reply);
+      showAction('Maps', reply, 'Open Maps', url);
+      break;
+    }
+
+    case 'open_camera': {
+      const reply = 'Opening camera.';
+      addJarvis(reply); speak(reply);
+      showAction('Camera', reply, 'Open Camera', 'intent://camera#Intent;scheme=android-app;package=com.android.camera;end');
+      break;
+    }
+
+    case 'open_settings': {
+      const reply = 'Opening settings.';
+      addJarvis(reply); speak(reply);
+      showAction('Settings', reply, 'Open Settings', 'intent://settings#Intent;scheme=android-app;end');
+      break;
+    }
+
+    case 'send_email': {
+      const url   = `mailto:${cmd.name||''}?body=${encodeURIComponent(cmd.message||'')}`;
+      const reply = `Opening email${cmd.name?' to '+cmd.name:''}.`;
+      addJarvis(reply); speak(reply);
+      showAction('Email', reply, 'Open Email App', url);
+      break;
+    }
+
+    case 'set_alarm': {
+      const reply = 'Opening alarm. Set your time.';
+      addJarvis(reply); speak(reply);
+      showAction('Alarm', reply, 'Open Clock / Alarm', 'intent://alarm#Intent;scheme=android-app;end');
+      break;
+    }
+
+    case 'time_date': {
+      const timeStr = now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+      const dateStr = now.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+      const reply   = `It is ${timeStr} on ${dateStr}.`;
+      addJarvis(reply); speak(reply);
+      break;
+    }
+
+    case 'calculate': {
+      try {
+        const expr  = cmd.query.replace(/plus/gi,'+').replace(/minus/gi,'-').replace(/times/gi,'*').replace(/divided by/gi,'/').replace(/[^0-9+\-*/.() ]/g,'');
+        const result = Function('"use strict"; return ('+expr+')')();
+        const reply  = `The answer is ${Math.round(result*10000)/10000}.`;
+        addJarvis(reply); speak(reply);
+      } catch(e) {
+        const reply = 'I could not calculate that. Try a simpler expression.';
+        addJarvis(reply); speak(reply);
+      }
+      break;
+    }
+
+    case 'open_app': {
+      const app   = cmd.app || 'app';
+      const url   = `intent://${app.toLowerCase().replace(/\s/g,'')}#Intent;scheme=android-app;end`;
+      const reply = `Opening ${app}.`;
+      addJarvis(reply); speak(reply);
+      showAction('App', reply, `Open ${app}`, url);
+      break;
+    }
+
+    default: {
+      // Free-form — answer using AI classifier or a smart fallback
+      answerFreeform(text);
+      break;
+    }
+  }
+}
+
+// ── FREE-FORM AI ANSWER ───────────────────────────────────────────────────────
+async function answerFreeform(text) {
+  setOrbState('thinking');
+  const typingEl = addTyping();
+
+  if (classifier) {
+    try {
+      const result = await classifier(text, [
+        'greeting', 'joke', 'about jarvis', 'weather question',
+        'general knowledge', 'thank you', 'insult', 'help'
+      ]);
+      typingEl.remove();
+      const label = result[0]?.label || 'general knowledge';
+      const reply = getSmartReply(text, label);
+      addJarvis(reply); speak(reply);
+      setOrbState('idle');
+      return;
+    } catch(e) {}
+  }
+
+  // Fallback keyword replies
+  typingEl.remove();
+  const reply = getSmartReply(text, null);
+  addJarvis(reply); speak(reply);
+  setOrbState('idle');
+}
+
+function getSmartReply(text, label) {
+  const t = text.toLowerCase();
+  if (/hello|hi\b|hey|good morning|good evening|good night|namaste/i.test(t))
+    return "Hello! I'm JARVIS, your AI assistant. What can I do for you?";
+  if (/how are you|how do you do|you okay/i.test(t))
+    return "I'm running at full capacity. Ready to assist you, sir.";
+  if (/your name|who are you|what are you/i.test(t))
+    return "I am JARVIS — your personal AI assistant. I work completely offline.";
+  if (/joke|funny|make me laugh/i.test(t))
+    return "Why do programmers prefer dark mode? Because light attracts bugs!";
+  if (/thank you|thanks|thank u|shukriya/i.test(t))
+    return "You're welcome. Is there anything else I can help with?";
+  if (/weather/i.test(t))
+    return "I can't fetch live weather without internet, but I can search Google for you. Say: search Google for weather today.";
+  if (/help|what can you do|commands/i.test(t))
+    return "I can open WhatsApp, search Google, play YouTube, open Maps, make calls, check time, open camera, send email, set alarms, calculate, and open any app. Just say the command!";
+  if (/bye|goodbye|shut down|stop/i.test(t))
+    return "Goodbye. JARVIS standing by.";
+  if (/what is|who is|tell me|explain/i.test(t)) {
+    const q = encodeURIComponent(text);
+    setTimeout(() => showAction('Google', 'I\'ll search that for you.', 'Search Google', `https://www.google.com/search?q=${q}`), 300);
+    return `I don't have that answer offline, but I'm opening Google for you.`;
+  }
+  return `I heard: "${text}". I'm not sure how to help with that. Try saying "search Google for ${text}" or ask me to open an app.`;
+}
+
+// ── UI HELPERS ────────────────────────────────────────────────────────────────
+function addLog(type, html) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + type;
+  div.innerHTML = html;
+  logArea.appendChild(div);
+  scrollBottom();
+  return div;
+}
+function addJarvis(text) {
+  return addLog('jarvis', `<div class="sender">JARVIS</div>${esc(text)}`);
+}
+function addTyping() {
+  const div = document.createElement('div');
+  div.className = 'msg jarvis';
+  div.innerHTML = '<div class="sender">JARVIS</div><div class="typing"><span></span><span></span><span></span></div>';
+  logArea.appendChild(div);
+  scrollBottom();
+  return div;
+}
+function showAction(label, text, btnLabel, url) {
+  const card = document.createElement('div');
+  card.className = 'action-card';
+  card.innerHTML = `<div class="ac-label">${esc(label)}</div><div class="ac-text">${esc(text)}</div><a class="ac-btn" href="${url}" target="_blank" rel="noopener">${esc(btnLabel)}</a>`;
+  logArea.appendChild(card);
+  scrollBottom();
+}
+function scrollBottom() { setTimeout(() => logArea.scrollTop = logArea.scrollHeight, 60); }
+function esc(t) { return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function setOrbState(state) {
+  orbWrap.className = 'orb-wrap ' + (state === 'disabled' ? 'disabled' : state === 'listening' ? 'listening' : state === 'thinking' ? 'thinking' : '');
+  const states = { idle:'Tap to speak', listening:'Listening...', thinking:'Thinking...', disabled:'Loading AI...' };
+  orbStatus.textContent = states[state] || 'Tap to speak';
+}
+function setStatus(color, text) {
+  statusDot.className = 'dot ' + color;
+  statusText.textContent = text;
+}
+
+// ── SPEECH RECOGNITION ────────────────────────────────────────────────────────
+window.toggleListen = function() {
+  if (!aiReady) { addLog('system','AI still loading. Please wait.'); return; }
+  if (isListening) { stopListening(); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { addLog('system','Voice not supported. Use Chrome browser.'); return; }
+
+  recognition = new SR();
+  recognition.lang = 'en-IN';
+  recognition.interimResults = true;
+
+  recognition.onstart = () => {
+    isListening = true;
+    setOrbState('listening');
+    liveDot.classList.remove('hidden');
+    transcriptT.textContent = 'Listening...';
+    transcriptT.style.color = 'var(--cyan)';
+  };
+  recognition.onresult = e => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    transcriptT.textContent = (final || interim) + (interim ? '...' : '');
+    if (final.trim()) { stopListening(); processInput(final.trim()); }
+  };
+  recognition.onerror = e => { stopListening(); if (e.error !== 'no-speech') addLog('system','Mic error: ' + e.error); };
+  recognition.onend   = () => stopListening();
+  recognition.start();
+};
+
+function stopListening() {
+  isListening = false;
+  setOrbState('idle');
+  liveDot.classList.add('hidden');
+  transcriptT.style.color = 'var(--text3)';
+  transcriptT.textContent = 'Say something...';
+  if (recognition) { try { recognition.stop(); } catch(e){} }
+}
+
+function processInput(text) {
+  addLog('user', esc(text));
+  setOrbState('thinking');
+  setTimeout(() => { handleIntent(text); setOrbState('idle'); }, 100);
+}
+
+window.handleChip = function(text) {
+  if (!aiReady) return;
+  transcriptT.textContent = text;
+  processInput(text);
+};
+
+// ── SPEECH SYNTHESIS ─────────────────────────────────────────────────────────
+function speak(text) {
+  if (!text || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-IN'; u.rate = 1; u.pitch = 1.05;
+  window.speechSynthesis.speak(u);
+}
+
+// Space bar shortcut
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' && e.target.tagName !== 'INPUT') { e.preventDefault(); toggleListen(); }
+});
+
+// ── LOAD AI MODEL ─────────────────────────────────────────────────────────────
+async function loadAI() {
+  loadStatus.textContent = 'Downloading AI model (first time only)...';
+  loadBar.style.width = '10%';
+
+  try {
+    loadBar.style.width = '30%';
+    loadStatus.textContent = 'Loading zero-shot classifier...';
+
+    classifier = await pipeline(
+      'zero-shot-classification',
+      'Xenova/mobilebert-uncased-mnli',
+      {
+        progress_callback: (p) => {
+          if (p.status === 'progress' && p.total) {
+            const pct = Math.round(10 + (p.loaded / p.total) * 70);
+            loadBar.style.width = pct + '%';
+            loadStatus.textContent = `Downloading model: ${pct}%`;
+          }
+        }
+      }
+    );
+    loadBar.style.width = '100%';
+    loadStatus.textContent = 'AI ready!';
+  } catch(e) {
+    loadBar.style.width = '100%';
+    loadStatus.textContent = 'AI loaded (basic mode).';
+  }
+
+  // Done either way — command matching works without the model
+  aiReady = true;
+  setTimeout(() => {
+    loadScreen.classList.add('hidden');
+    setOrbState('idle');
+    setStatus('green','Ready');
+    quickRow.style.opacity = '1';
+    quickRow.style.pointerEvents = 'auto';
+    logArea.innerHTML = '';
+    addLog('system','JARVIS online · No API needed');
+    addJarvis("I'm JARVIS, your offline AI assistant. Tap the orb or say a command. I can open WhatsApp, search Google, make calls, play YouTube, open Maps, check the time, and much more.");
+    speak("JARVIS online. How can I help you?");
+  }, 600);
+}
+
+loadAI();
+
+// Service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
